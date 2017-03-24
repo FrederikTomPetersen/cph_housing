@@ -11,6 +11,8 @@ library("caret")
 library("dplyr")
 library("plyr")
 
+
+
 #######################################################################################################################
 #######################################################################################################################
 ###
@@ -24,6 +26,7 @@ library("plyr")
 ###                 2.3) Scraper
 ###                       2.3.1) f: scraper.singlepage
 ###                       2.3.2) f: pagelooper
+###                       2.3.3) f: store.payload
 ###                 2.4) f: pagelooper 
 ###             3) data cleanup funktioner
 ###                 3.1) f: cleaner 
@@ -55,7 +58,9 @@ library("plyr")
 
 #######################################################################################################################
 ###         1) FÆRDIGT PROGRAM
+###             scraper.singlepage - 
 ###             pagelooper(S,M) - scraper resultater fra side S til side M på boliga
+###             store.payload - loop through every page by running pagelooper on increments of the total number of pages
 ###             cleaner(data) - renser datasæt til videre behandling
 ###             geodata.appender(data, zone) - tilføjer længde/bredegrad til data - zone skal angives fx -"copenhagen"-
 ###                                            for at få tilstrækkelig præcision i geolokationen. Husk at google kun giver
@@ -79,17 +84,22 @@ library("plyr")
 ###
       link.part = "http://www.boliga.dk/salg/resultater?so=1&type=Ejerlejlighed&kom=101&fraPostnr=&tilPostnr=&gade=&min=&max=&byggetMin=&byggetMax=&minRooms=&maxRooms=&minSize=&maxSize=&minsaledate=1992&maxsaledate=today&kode=&sort=omregnings_dato-a&p="
 ###
-      M = 450                        # sæt max side-nummer (du behøves ikke køre til max med det samme) 
+      M = 1256                        # sæt max side-nummer (du behøves ikke køre til max med det samme) 
 ###
 #######################################################################################################################
 # KØR ALT I 2) TIL OG MED 4) AF DOKUMENTET FØR DU KØRER NEDENSTÅENDE
 
+    data.2 = store.payload(data, 650,100)
+      
     link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
     
     data.2 = pagelooper(351,M)            # S,M angiver min og max sidetal der skal loopes over.
+                                          #kør for 100-200 sider af gangen, og rbind() datasæt derefter.
 
-                                        #Mlast = 150    
-    data_clean = cleaner(data)        # Renser datasættet, (tager output fra pagelooper som argument!)
+        data= rbind(data, data.2)
+
+
+        data_clean = cleaner(data)        # Renser datasættet, (tager output fra pagelooper som argument!)
     
 #    data_geo = geodata.appender(data_clean.2, "copenhagen")     #Geolocater (tager output fra cleaner som argument!)
     data_geo = geodata.offline(data_clean)                         # brug evt geodata.offline istedet!
@@ -118,8 +128,8 @@ css.m2        = ".qtipped+ td h5"           #7
 css.build     = "td:nth-child(8) h5"        #8
 
 # sammensæt selectors i en vector og definer en tilsvarende vektor med variabelnavne (OBS ordering matters !)
-css.list = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build)   # Navnelisten og denne skal matche 1:1
-N = c(NA,"address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
+css.list  = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build)          # Navnelisten og denne skal matche 1:1
+N         = c(NA,"address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
 
 ###---------------------------------------------
 ###        2.2) list updater
@@ -127,8 +137,8 @@ N = c(NA,"address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","buil
 
 # Bind link part med et (alle) tal i sekvensen 1:M
 list.updater = function(M){
-    num = 1:M
-    link.list = paste(link.part,num, sep="")
+    num         = 1:M
+    link.list   = paste(link.part,num, sep="")
   return(link.list)
 }
 
@@ -142,10 +152,10 @@ list.updater = function(M){
 # Single page scraper - henter alle informationer på en side
 scraper.singlepage = function(link){
   for(i in css.list) {
-    data = link %>%
-    read_html() %>%
-    html_nodes(i) %>%
-    html_text()
+    data = link       %>%
+        read_html()   %>%
+        html_nodes(i) %>%
+        html_text()
     frame = cbind(frame, as.list(data))
   }
     colnames(frame) = N
@@ -156,17 +166,37 @@ scraper.singlepage = function(link){
 ### ********** 2.3.2) pagelooper ************
 
 # pagelooper kører scraper.singlepage() på hver side fra 1 til M
-pagelooper = function(S,M){
+pagelooper = function(S,m){
   s.page = as.list(NULL)
-    for(i in S:M){
-    pagedump = scraper.singlepage(link.list[i])
-    s.page = rbind(s.page, pagedump)
-    Sys.sleep(3)
-  }
+    for(i in S:m){
+      pagedump = scraper.singlepage(link.list[i])
+      s.page   = rbind(s.page, pagedump)
+      Sys.sleep(5)
+    }
   return(as.data.frame(s.page))
 }
 
+### ********** 2.3.3) store.payload ************
 
+store.payload = function(data, n, inc){
+  page = nrow(data)/40
+  stop = nrow(data)/40 + n
+  
+  while(page < stop){
+    t = as.numeric(Sys.time())
+    data = rbind(data, pagelooper(page + 1,  page + inc))
+    
+    page = nrow(data)/40
+    if(stop - page < inc) {inc = stop - page} else{inc = inc}
+    
+    save.image(file = "housing_autogen.RData")
+    Sys.sleep(10)
+    
+    print(paste("Finishing page", page, "of", stop, "total"))
+    print(paste("estimated",(stop-page)*(as.numeric(Sys.time())-t) , "seconds remaining"))
+  }
+  return(data)
+}
 
 #######################################################################################################################
 ###         3) DATA CLEANUP 
@@ -346,7 +376,7 @@ trade.volume = function(data){
   ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
                  color = "grey50", alpha = 0.1, show.legend = FALSE) +
-    geom_point(data = data_fin, aes( x = lon, y = lat, color = height), alpha = 0.3) +
+    geom_point(data = data_fin, aes( x = lon, y = lat, color = log(buysum)), alpha = 0.3) +
     coord_map(projection="mercator", 
               xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
               ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
