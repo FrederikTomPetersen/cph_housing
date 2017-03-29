@@ -12,7 +12,6 @@ library("dplyr")
 library("plyr")
 
 
-
 #######################################################################################################################
 #######################################################################################################################
 ###
@@ -84,20 +83,18 @@ library("plyr")
 ###
       link.part = "http://www.boliga.dk/salg/resultater?so=1&type=Ejerlejlighed&kom=101&fraPostnr=&tilPostnr=&gade=&min=&max=&byggetMin=&byggetMax=&minRooms=&maxRooms=&minSize=&maxSize=&minsaledate=1992&maxsaledate=today&kode=&sort=omregnings_dato-a&p="
 ###
-      M = 1256                        # sæt max side-nummer (du behøves ikke køre til max med det samme) 
+#     M = 1256
 ###
 #######################################################################################################################
 # KØR ALT I 2) TIL OG MED 4) AF DOKUMENTET FØR DU KØRER NEDENSTÅENDE
 
     data.2 = store.payload(data, 650,100)
       
-    link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
+#    link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
     
-    data.2 = pagelooper(351,M)            # S,M angiver min og max sidetal der skal loopes over.
+#    data.2 = pagelooper(351,M)            # S,M angiver min og max sidetal der skal loopes over.
                                           #kør for 100-200 sider af gangen, og rbind() datasæt derefter.
-
         data= rbind(data, data.2)
-
 
         data_clean = cleaner(data)        # Renser datasættet, (tager output fra pagelooper som argument!)
     
@@ -131,6 +128,7 @@ css.build     = "td:nth-child(8) h5"        #8
 css.list  = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build)          # Navnelisten og denne skal matche 1:1
 N         = c(NA,"address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
 
+
 ###---------------------------------------------
 ###        2.2) list updater
 ###---------------------------------------------
@@ -151,6 +149,7 @@ list.updater = function(M){
 
 # Single page scraper - henter alle informationer på en side
 scraper.singlepage = function(link){
+  
   for(i in css.list) {
     data = link       %>%
         read_html()   %>%
@@ -163,11 +162,36 @@ scraper.singlepage = function(link){
 }
 
 
+scraper.singlepage.test = function(link){
+#open html and read link  attribute from column 1
+  data <- link %>% 
+    read_html() 
+  
+   data_attr <- data %>%
+    html_nodes(css.list[1]) %>%
+    html_attr()
+#bind as column in frame    
+    frame = cbind(frame,as.list(data_attr))
+#read all nodes in sequence without closing & reopening the html
+  for(i in css.list){
+    data_text = data  %>% 
+      html_nodes(i)   %>% 
+      html_text()
+    frame = cbind(frame, as.list(data_text)) 
+  }
+  
+  colnames(frame) = N
+  return(out = frame[,2:ncol(frame)])
+}
+
+
 ### ********** 2.3.2) pagelooper ************
 
 # pagelooper kører scraper.singlepage() på hver side fra 1 til M
 pagelooper = function(S,m){
+  link.list = list.updater(m)
   s.page = as.list(NULL)
+
     for(i in S:m){
       pagedump = scraper.singlepage(link.list[i])
       s.page   = rbind(s.page, pagedump)
@@ -187,7 +211,7 @@ store.payload = function(data, n, inc){
     data = rbind(data, pagelooper(page + 1,  page + inc))
     
     page = nrow(data)/40
-    if(stop - page < inc) {inc = stop - page} else{inc = inc}
+    if(stop - page < inc) {inc = stop - page} else {inc = inc}
     
     save.image(file = "housing_autogen.RData")
     Sys.sleep(10)
@@ -197,6 +221,8 @@ store.payload = function(data, n, inc){
   }
   return(data)
 }
+
+
 
 #######################################################################################################################
 ###         3) DATA CLEANUP 
