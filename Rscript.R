@@ -12,7 +12,6 @@ library("dplyr")
 library("plyr")
 
 
-
 #######################################################################################################################
 #######################################################################################################################
 ###
@@ -89,11 +88,11 @@ library("plyr")
 #######################################################################################################################
 # KØR ALT I 2) TIL OG MED 4) AF DOKUMENTET FØR DU KØRER NEDENSTÅENDE
 
-    data.2 = store.payload(data, 650,100)
+    data.2 = store.payload(data, 651,100)
       
     link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
     
-    data.2 = pagelooper(351,M)            # S,M angiver min og max sidetal der skal loopes over.
+    data.2 = pagelooper(1,5)            # S,M angiver min og max sidetal der skal loopes over.
                                           #kør for 100-200 sider af gangen, og rbind() datasæt derefter.
 
         data= rbind(data, data.2)
@@ -129,7 +128,7 @@ css.build     = "td:nth-child(8) h5"        #8
 
 # sammensæt selectors i en vector og definer en tilsvarende vektor med variabelnavne (OBS ordering matters !)
 css.list  = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build)          # Navnelisten og denne skal matche 1:1
-N         = c(NA,"address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
+N         = c(NA, "link", "address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
 
 ###---------------------------------------------
 ###        2.2) list updater
@@ -149,16 +148,39 @@ list.updater = function(M){
 
 ### ********** 2.3.1) scraper.singlepage ************
 
-# Single page scraper - henter alle informationer på en side
+# #Single page scraper - henter alle informationer på en side
+# scraper.singlepage = function(link){
+#   for(i in css.list) {
+#     data = link       %>%
+#         read_html()   %>%
+#         html_nodes(i) %>%
+#         html_text()
+#     frame = cbind(frame, as.list(data))
+#   }
+#     colnames(frame) = N
+#   return(out = frame[,2:ncol(frame)])
+# }
+
+
 scraper.singlepage = function(link){
-  for(i in css.list) {
-    data = link       %>%
-        read_html()   %>%
-        html_nodes(i) %>%
-        html_text()
-    frame = cbind(frame, as.list(data))
+#open html and read link  attribute from column 1
+  data <- link %>% 
+    read_html() 
+  
+   data_attr <- data %>%
+    html_nodes("#searchresult h5 a") %>%
+    html_attrs()
+#bind as column in frame    
+    frame = cbind(frame,as.list(data_attr))
+#read all nodes in sequence without closing & reopening the html
+  for(i in css.list){
+    data_text = data  %>% 
+      html_nodes(i)   %>% 
+      html_text()
+    frame = cbind(frame, as.list(data_text)) 
   }
-    colnames(frame) = N
+  
+  colnames(frame) = N
   return(out = frame[,2:ncol(frame)])
 }
 
@@ -169,10 +191,13 @@ scraper.singlepage = function(link){
 pagelooper = function(S,m){
   s.page = as.list(NULL)
     for(i in S:m){
-      pagedump = scraper.singlepage(link.list[i])
-      s.page   = rbind(s.page, pagedump)
+      t = as.numeric(Sys.time())
+          pagedump = scraper.singlepage(link.list[i])
+          s.page   = rbind(s.page, pagedump)
+       print(paste("getting page",i,"took",as.numeric(Sys.time())-t , "seconds. Sleeping for 5 seconds before getting next page"))
       Sys.sleep(5)
     }
+  print(paste("DONE with pages",S,"to",m))
   return(as.data.frame(s.page))
 }
 
@@ -279,7 +304,8 @@ geodata.appender= function(data, zone){
   addr = read.csv("adresser.csv", encoding = "UTF-8", stringsAsFactors = F)
   subaddr = unique(addr[c("vejnavn","husnr","wgs84koordinat_bredde", "wgs84koordinat_længde", "postnr",
                           "postnrnavn","nøjagtighed", "højde")])  
-      rm(addr)
+  
+
 
 # left join the scraped data info from danish address registries  
 geodata.offline = function(data){
