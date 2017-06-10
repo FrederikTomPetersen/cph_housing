@@ -227,14 +227,33 @@ store.payload = function(data, n, inc){
 ### ********** 2.3.4) scrape.housedata ************
 
 
+#lav en liste med links
+#for hvert link 
+
+#css.toi = ".rowLine:nth-child(7) .text-right"   # no. toilets 
+css.grsk = ".padding:nth-child(3) h3+ .rowLine b"   # grundskyld
+css.evs = ".padding:nth-child(3) .rowLine+ .rowLine b" # ejendomsværdiskat
+
+
 scrape.housedata = function(data){
   webid = substr(data$link,24,60)
   l.list = paste0("boliga.dk/bbrinfo", webid)
+  css.list = c("css.grsk", "css.evs")
   
-  for(i in 1:length(l.list)){
+  for(i in l.list){
+    data <- i %>%
+      read_html() 
+      
+      for(j in css.list){
+        data <- data %>%
+          html_nodes(j) %>%
+          html_text()
+        frame = cbind(frame, data)
+      }
     
-  }
-    
+    allframe = rbind(allframe, frame)  
+    }
+  return(allframe)  
 }
 
 #######################################################################################################################
@@ -486,7 +505,7 @@ dummies = function(data){
 data_modeling = prepper(data_fin, 0,5000000, T)
 
 #partition data into train (p percent of original) and test (1-p percent)
-trainIndex = createDataPartition(data_modeling$nborhood, p = 0.4, list = F, times = 1)
+trainIndex = createDataPartition(data_modeling$nborhood, p = 0.05, list = F, times = 1)
   data_train = data_modeling[trainIndex,]
   data_test = data_modeling[-trainIndex,]
 
@@ -565,16 +584,29 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 ###        6.7) xgBoost
 ###---------------------------------------------
 
-  m_xgb = train(buysum ~  m2 + floor + n_rooms + build_year + x + lon + lat + as.numeric(date) + height,
+  
+  m_xgbTree = train(buysum ~  m2 + floor + n_rooms + build_year + x + lon + lat + as.numeric(date) + height,
                data = data_train,
                method = "xgbTree",
                trControl = fitControl,
                preProcess = c("scale"),
+               search = "grid",
                linout = T)
   
-  data_test$pred_xgb = predict(m_xgb, newdata = data_test)
-  data_test$resid_xgb = data_test$buysum - data_test$pred_xgb
+  data_test$pred_xgbTree = predict(m_xgbTree, newdata = data_test)
+  data_test$resid_xgbTree = data_test$buysum - data_test$pred_xgbTree
 
+
+  m_xgbLin = train(buysum ~  m2 + floor + n_rooms + build_year + x + lon + lat + as.numeric(date) + height,
+               data = data_train,
+               method = "xgbLinear",
+               trControl = fitControl,
+               preProcess = c("scale"),
+               search = "grid",
+               linout = T)
+
+  data_test$pred_xgbLin = predict(m_xgbLin, newdata = data_test)
+  data_test$resid_xgbLin = data_test$buysum - data_test$pred_xgbLin
 
   
 ###---------------------------------------------
@@ -588,7 +620,7 @@ ggplot(data = data_test) +
     geom_point(aes(x = buysum, y = pred_knn, color = "blue"), alpha = 0.4) +
     geom_point(aes(x = buysum, y = pred_rf, color = "green"),alpha = 0.4) +
     geom_point(aes(x = buysum, y = pred_nnet, color = "yellow"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = pred_xgb, color = "purple"), alpha = 0.4) +
+    geom_point(aes(x = buysum, y = pred_xgbTree, color = "purple"), alpha = 0.4) +
     coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
     geom_abline(slope = 1, intercept = 0) +
     scale_colour_manual(name = "", 
@@ -605,7 +637,7 @@ ggplot(data = data_test) +
     geom_point(aes(x = buysum, y = resid_knn, color = "blue"), alpha = 0.4) +
     geom_point(aes(x = buysum, y = resid_rf, color = "green"), alpha = 0.4) +
     geom_point(aes(x = buysum, y = resid_nnet, color = "yellow"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = resid_xgb, color = "purple"), alpha = 0.4) +
+    geom_point(aes(x = buysum, y = resid_xgbTree, color = "purple"), alpha = 0.4) +
 #    coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
@@ -647,7 +679,7 @@ data_highresid = gather(data_test, key = model, value = resid, c(resid_linear,re
 #***********  6.7.2) Analytical comparison *************************
 
 #RMSE and R2 for each model
-resamp = resamples(list(knn = m_knn, rf = m_rf, lin = m_linear, linPCA = m_linearPCA, nnet = m_nnet, xgb = m_xgb))
+resamp = resamples(list(knn = m_knn, rf = m_rf, lin = m_linear, linPCA = m_linearPCA, nnet = m_nnet, xgbTree = m_xgbTree, xgbLin = m_xgbLin ))
 # RMSE
   dotplot(resamp,metric = "RMSE")
 # R2
