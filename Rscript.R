@@ -95,8 +95,9 @@ library("plyr")
     link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
     
     data = pagelooper(1,5)            # S,M angiver min og max sidetal der skal loopes over.
-    data2 = store.payload(data, 1200, 100)
+    data_out = store.payload(data, 1200, 100)
 
+    
     data= data2
 
     anyDuplicated(data)
@@ -199,25 +200,38 @@ pagelooper = function(S,m){
   return(as.data.frame(s.page))
 }
 
+
 ### ********** 2.3.3) store.payload ************
 
 store.payload = function(data, n, inc){
   page = floor(nrow(data)/40)
   stop = floor(nrow(data)/40) + n
+  print(paste("start page:",page))
+  print(paste("stop page:", stop))
   
   while(page < stop){
     t = as.numeric(Sys.time())
-    data = rbind(data, pagelooper(page + 1,  page + inc))
+    
+    data = tryCatch(rbind(data, pagelooper(page + 1,  page + inc)),
+                    error = function(e) {
+                      message(paste('Error:',e))
+                      return(data)
+                      })
     
     page = floor(nrow(data)/40)
     if(stop - page < inc) {inc = stop - page} else{inc = inc}
     
-    save.image(file = "housing_autogen.RData")
-    Sys.sleep(10)
+    for(i in 1:(NROW(N)-1)){
+      data[,i] = unlist(data[,i])
+    }
+
+    write.csv2(data, 'temp_write.csv')
+    Sys.sleep(60)
     
     print(paste("Finishing page", page, "of", stop, "total"))
-    print(paste("estimated",(stop-page)*(as.numeric(Sys.time())-t) , "seconds remaining"))
+    print(paste("estimated",(stop-page)*((as.numeric(Sys.time())-t)/inc) , "seconds remaining"))
   }
+  print("FINALLY FINISHED")
   return(data)
 }
 
@@ -322,6 +336,7 @@ geodata.offline = function(data){
 }
 
 
+
 ###---------------------------------------------
 ###        4.3) area.matcher
 ###---------------------------------------------
@@ -402,19 +417,20 @@ density <-  ggplot(data = data_fin) +
 density
 
 # map plot of log(buysum)
-map_cph = get_map(location = "copenhagen", zoom = 12, color = "bw")
+map_cph = get_map(location = "copenhagen", zoom = 12, maptype = 'satellite')
 
 map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
                  color = "grey50", alpha = 0.1, show.legend = FALSE) +
-    geom_point(data = data_fin, aes( x = lon, y = lat, color = log(buysum)), alpha = 0.3) +
+    geom_point(data = data_fin, aes( x = lon, y = lat, color = build_year), size = 0.5, alpha = 0.6) +
     coord_map(projection="mercator", 
               xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
               ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
     #    scale_color_gradient(high = "orange", low = "blue") +
     #  scale_color_gradient2(high = "blue", mid = "orange", low = "blue") +
     scale_color_viridis(discrete = F)+
-    theme(axis.line=element_blank(),axis.text.x=element_blank(),
+    theme(legend.position = "bottom",
+          axis.line=element_blank(),axis.text.x=element_blank(),
           axis.text.y=element_blank(),axis.ticks=element_blank(),
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
@@ -423,14 +439,17 @@ map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), exte
   
 map1
   
+
 # buysum by date
-times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(sqm_price))) +
-  geom_line(alpha = 0.6) +
+times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(m2))) +
+  geom_line(alpha = 0.2) +
   geom_smooth() +
   scale_color_viridis() +
   theme(legend.position="bottom") +
 #  geom_abline(slope = 0.02, intercept = 0) +
-  facet_wrap(~ nborhood)
+  scale_x_date(date_breaks = "20 years", date_labels = "%Y") +
+  facet_wrap(~ nborhood) 
+
 
 times
 
