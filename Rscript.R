@@ -10,7 +10,7 @@ library("maptools")
 library("caret")
 library("dplyr")
 library("plyr")
-
+library("scales")
 
 
 
@@ -414,10 +414,10 @@ density <-  ggplot(data = data_fin) +
     geom_density(aes(x = buysum), fill = "blue", size = 1, alpha = 0.6) +
     facet_wrap(~ nborhood)
 
-density
+#density
 
 # map plot of log(buysum)
-map_cph = get_map(location = "copenhagen", zoom = 12, maptype = 'satellite')
+map_cph <- get_map(location = "copenhagen", zoom = 12, maptype = 'satellite')
 
 map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
@@ -426,28 +426,41 @@ map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), exte
     coord_map(projection="mercator", 
               xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
               ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
-    #    scale_color_gradient(high = "orange", low = "blue") +
-    #  scale_color_gradient2(high = "blue", mid = "orange", low = "blue") +
-    scale_color_viridis(discrete = F)+
+    guides(color = guide_colorbar(barwidth = 20,
+                                  barheight = 0.3,
+                                  title = "Build year",
+                                  title.position = "top")
+           ) +
+    scale_color_viridis(discrete = F, option = "magma")+
     theme(legend.position = "bottom",
-          axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.line=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks=element_blank(),
           axis.title.x=element_blank(),
           axis.title.y=element_blank(),
-          panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
-          panel.grid.minor=element_blank(),plot.background=element_blank())
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          plot.background=element_blank()) 
   
 map1
-  
+
 
 # buysum by date
-times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(m2))) +
-  geom_line(alpha = 0.2) +
+times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = n_rooms)) +
+  geom_line(alpha = 0.15) +
   geom_smooth() +
-  scale_color_viridis() +
+  scale_y_continuous(labels = comma) +
+  guides(color = guide_colorbar(barwidth = 20,
+                                barheight = 0.3,
+                                title = "Build year",
+                                title.position = "top")) +  
+  scale_color_viridis(option = "plasma") +
   theme(legend.position="bottom") +
 #  geom_abline(slope = 0.02, intercept = 0) +
-  scale_x_date(date_breaks = "20 years", date_labels = "%Y") +
+  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
   facet_wrap(~ nborhood) 
 
 
@@ -455,7 +468,14 @@ times
 
 
 times2 <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = nborhood)) +
-  geom_line(alpha = 0.3) +
+  geom_line(alpha = 0.1) +
+  scale_color_discrete(labels = c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Sydhavn","Valby","Vanløse")) +
+  scale_y_continuous(labels = comma) +
+  theme(legend.position = "bottom",
+        legend.title=element_blank(),
+        legend.text = element_text(size = 7),
+        legend.background = element_rect(fill=NA)) +
+#  guides(color=guide_legend(nrow=3,byrow=TRUE)) +
   geom_smooth() 
   
 times2
