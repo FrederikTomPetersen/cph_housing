@@ -12,6 +12,8 @@ library("dplyr")
 library("plyr")
 
 
+
+
 #######################################################################################################################
 #######################################################################################################################
 ###
@@ -88,19 +90,19 @@ library("plyr")
 #######################################################################################################################
 # KØR ALT I 2) TIL OG MED 4) AF DOKUMENTET FØR DU KØRER NEDENSTÅENDE
 
-    data.2 = store.payload(data, 651,100)
+
       
     link.list = list.updater(M)   # DONT CHANGE THIS LINE, KØR FØRST
     
-    data.2 = pagelooper(1,5)            # S,M angiver min og max sidetal der skal loopes over.
-                                          #kør for 100-200 sider af gangen, og rbind() datasæt derefter.
+    data = pagelooper(1,5)            # S,M angiver min og max sidetal der skal loopes over.
+    data2 = store.payload(data, 1200, 100)
 
-        data= rbind(data, data.2)
+    data= data2
 
+    anyDuplicated(data)
 
-        data_clean.2 = cleaner(data.2)        # Renser datasættet, (tager output fra pagelooper som argument!)
+    data_clean = cleaner(data)        # Renser datasættet, (tager output fra pagelooper som argument!)
     
-#    data_geo = geodata.appender(data_clean.2, "copenhagen")     #Geolocater (tager output fra cleaner som argument!)
     data_geo = geodata.offline(data_clean)                         # brug evt geodata.offline istedet!
 
     data_fin = area.matcher(data_geo)[[1]]    #area.matcher finder bykvarter for hver observation
@@ -125,11 +127,19 @@ css.rooms     = "td:nth-child(5) h5"        #5
 css.type      = "td.qtipped"                #6
 css.m2        = ".qtipped+ td h5"           #7
 css.build     = "td:nth-child(8) h5"        #8
+css.deduction = "td:nth-child(9)"           #9
 
 # sammensæt selectors i en vector og definer en tilsvarende vektor med variabelnavne (OBS ordering matters !)
-css.list  = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build)          # Navnelisten og denne skal matche 1:1
-N         = c(NA, "link", "address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year")              # behold NA som første element!
+css.list  = c(css.addr, css.buysum, css.date, css.sqm_price, css.rooms, css.type, css.m2, css.build, css.deduction)          # Navnelisten og denne skal matche 1:1
+N         = c(NA, "address", "buysum", "date", "sqm_price", "n_rooms", "type", "m2","build_year", "deduction")              # behold NA som første element!
 
+
+if(!exists(addr)){
+addr = read.csv("adresser.csv", encoding = "UTF-8", stringsAsFactors = F)
+}
+
+subaddr = unique(addr[c("vejnavn","husnr","wgs84koordinat_bredde", "wgs84koordinat_længde", "postnr",
+                        "postnrnavn","nøjagtighed", "højde")])  
 ###---------------------------------------------
 ###        2.2) list updater
 ###---------------------------------------------
@@ -148,30 +158,18 @@ list.updater = function(M){
 
 ### ********** 2.3.1) scraper.singlepage ************
 
-# #Single page scraper - henter alle informationer på en side
-# scraper.singlepage = function(link){
-#   for(i in css.list) {
-#     data = link       %>%
-#         read_html()   %>%
-#         html_nodes(i) %>%
-#         html_text()
-#     frame = cbind(frame, as.list(data))
-#   }
-#     colnames(frame) = N
-#   return(out = frame[,2:ncol(frame)])
-# }
-
 
 scraper.singlepage = function(link){
 #open html and read link  attribute from column 1
   data <- link %>% 
     read_html() 
-  
-   data_attr <- data %>%
-    html_nodes("#searchresult h5 a") %>%
-    html_attrs()
+
+# apparently getting links is a mess
+#   data_attr <- data %>%
+#    html_nodes("#searchresult h5 a") %>%
+#    html_attr('href')
 #bind as column in frame    
-    frame = cbind(frame,as.list(data_attr))
+#    frame = cbind(frame,as.list(data_attr))
 #read all nodes in sequence without closing & reopening the html
   for(i in css.list){
     data_text = data  %>% 
@@ -204,14 +202,14 @@ pagelooper = function(S,m){
 ### ********** 2.3.3) store.payload ************
 
 store.payload = function(data, n, inc){
-  page = nrow(data)/40
-  stop = nrow(data)/40 + n
+  page = floor(nrow(data)/40)
+  stop = floor(nrow(data)/40) + n
   
   while(page < stop){
     t = as.numeric(Sys.time())
     data = rbind(data, pagelooper(page + 1,  page + inc))
     
-    page = nrow(data)/40
+    page = floor(nrow(data)/40)
     if(stop - page < inc) {inc = stop - page} else{inc = inc}
     
     save.image(file = "housing_autogen.RData")
@@ -230,31 +228,6 @@ store.payload = function(data, n, inc){
 #lav en liste med links
 #for hvert link 
 
-#css.toi = ".rowLine:nth-child(7) .text-right"   # no. toilets 
-css.grsk = ".padding:nth-child(3) h3+ .rowLine b"   # grundskyld
-css.evs = ".padding:nth-child(3) .rowLine+ .rowLine b" # ejendomsværdiskat
-
-
-scrape.housedata = function(data){
-  webid = substr(data$link,24,60)
-  l.list = paste0("boliga.dk/bbrinfo", webid)
-  css.list = c("css.grsk", "css.evs")
-  
-  for(i in l.list){
-    data <- i %>%
-      read_html() 
-      
-      for(j in css.list){
-        data <- data %>%
-          html_nodes(j) %>%
-          html_text()
-        frame = cbind(frame, data)
-      }
-    
-    allframe = rbind(allframe, frame)  
-    }
-  return(allframe)  
-}
 
 #######################################################################################################################
 ###         3) DATA CLEANUP 
@@ -268,8 +241,10 @@ scrape.housedata = function(data){
 ###         note: det er nok ikke nødvendigt med -df=data- når det køres som funktion (tjek?)
 ###               denne funktion trænger til at blive renset igennem
 
+
 cleaner = function(data){
     # unlist every column
+
     for(i in 1:(NROW(N)-1)){
       data[,i] = unlist(data[,i])
     }
@@ -333,11 +308,6 @@ geodata.appender= function(data, zone){
 ###---------------------------------------------
 ###        4.2) geodata.offline
 ###---------------------------------------------
-
-  addr = read.csv("adresser.csv", encoding = "UTF-8", stringsAsFactors = F)
-  subaddr = unique(addr[c("vejnavn","husnr","wgs84koordinat_bredde", "wgs84koordinat_længde", "postnr",
-                          "postnrnavn","nøjagtighed", "højde")])  
-  
 
 
 # left join the scraped data info from danish address registries  
@@ -425,14 +395,16 @@ trade.volume = function(data){
 #######################################################################################################################
 
 #facet wrap of densities in each quarter
-  ggplot(data = data_fin) +
+density <-  ggplot(data = data_fin) +
     geom_density(aes(x = buysum), fill = "blue", size = 1, alpha = 0.6) +
     facet_wrap(~ nborhood)
 
-# map plot of log(buysum)
-  map_cph = get_map(location = "copenhagen", zoom = 12, color = "bw")
+density
 
-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
+# map plot of log(buysum)
+map_cph = get_map(location = "copenhagen", zoom = 12, color = "bw")
+
+map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
                  color = "grey50", alpha = 0.1, show.legend = FALSE) +
     geom_point(data = data_fin, aes( x = lon, y = lat, color = log(buysum)), alpha = 0.3) +
@@ -448,15 +420,31 @@ trade.volume = function(data){
           axis.title.y=element_blank(),
           panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
           panel.grid.minor=element_blank(),plot.background=element_blank())
-
+  
+map1
+  
 # buysum by date
-ggplot(data = data_fin[data_fin$buysum < 5000000,]) +
-  geom_line(aes(x = date, y = buysum, color = log(sqm_price)), alpha = 0.8) +
+times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(sqm_price))) +
+  geom_line(alpha = 0.6) +
+  geom_smooth() +
   scale_color_viridis() +
   theme(legend.position="bottom") +
 #  geom_abline(slope = 0.02, intercept = 0) +
   facet_wrap(~ nborhood)
 
+times
+
+
+times2 <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = nborhood)) +
+  geom_line(alpha = 0.3) +
+  geom_smooth() 
+  
+times2
+
+ggsave("map1.png", map1)
+ggsave("facet_over_time.png", times)
+ggsave("over_time.png", times2)
+ggsave("density.png", density)
 
 #######################################################################################################################
 ###         6) MODELLING 

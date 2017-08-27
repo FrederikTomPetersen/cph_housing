@@ -17,6 +17,18 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+
+# project files
+
+*.csv
+*.Rhistory
+*.RData
+*.shp
+*.shx
+*.prj
+*.cst
+*.dbf
+
 # =========================
 # Operating System Files
 # =========================
