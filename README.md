@@ -7,3 +7,7 @@ The `Rscript.R` file contains everything as of now, but that might change in the
 <p align="center">
 <img src="facet_over_time.png" alt="GDP plot">
 </p>
+
+
+## Usage
+This project relies on a number of very large data files, including a national adress registry and a city shapefile - to get access to these you can contact me directly, as storing them on github would take upto much space. 
