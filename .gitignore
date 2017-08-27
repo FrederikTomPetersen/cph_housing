@@ -22,6 +22,7 @@ $RECYCLE.BIN/
 
 *.csv
 *.Rhistory
+.RDataTmp
 *.RData
 *.shp
 *.shx

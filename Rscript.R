@@ -369,7 +369,7 @@ area.matcher = function(data){
                            ifelse(df_geo$x == 3, "noerebro",
                            ifelse(df_geo$x == 4, "nordvest",
                            ifelse(df_geo$x == 5, "valby",
-                           ifelse(df_geo$x == 6, "sydhavn",
+                           ifelse(df_geo$x == 6, "vesterbro",
                            ifelse(df_geo$x == 7, "amager_vest",
                            ifelse(df_geo$x == 8, "amager_øst",
                            ifelse(df_geo$x == 9, "vanloese",
@@ -410,9 +410,10 @@ trade.volume = function(data){
 #######################################################################################################################
 
 #facet wrap of densities in each quarter
-density <-  ggplot(data = data_fin) +
-    geom_density(aes(x = buysum), fill = "blue", size = 1, alpha = 0.6) +
-    facet_wrap(~ nborhood)
+density <-  ggplot(data = data_fin[data_fin$n_rooms %in% c(2,4,6,8) & buysum <,]) +
+    geom_density(aes(x = buysum, group = nborhood, fill = nborhood),  size = 0.5, alpha = 0.3) +
+    scale_fill_viridis(discrete = T) +
+    facet_wrap(~ n_rooms)
 
 #density
 
@@ -448,19 +449,26 @@ map1 <-  ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), exte
 map1
 
 
+
+data_fin2$nborhood <- as.factor(data_fin2$nborhood)
+levels(data_fin2$nborhood) <- c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Vesterbro","Valby","Vanløse")
+
 # buysum by date
-times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = n_rooms)) +
+times <- ggplot(data = data_fin2[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(n_rooms))) +
   geom_line(alpha = 0.15) +
-  geom_smooth() +
+  geom_smooth(color = "purple", alpha = 0.8) +
   scale_y_continuous(labels = comma) +
   guides(color = guide_colorbar(barwidth = 20,
                                 barheight = 0.3,
-                                title = "Build year",
+                                title = "Log of number of rooms",
                                 title.position = "top")) +  
   scale_color_viridis(option = "plasma") +
-  theme(legend.position="bottom") +
+  theme(legend.position="bottom",
+        axis.text.x = element_text(size = 6),
+        axis.text.y = element_text(size = 6)
+        ) +
 #  geom_abline(slope = 0.02, intercept = 0) +
-  scale_x_date(date_breaks = "10 years", date_labels = "%Y") +
+  scale_x_date(date_breaks = "8 years", date_labels = "%Y") +
   facet_wrap(~ nborhood) 
 
 
@@ -469,7 +477,7 @@ times
 
 times2 <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = nborhood)) +
   geom_line(alpha = 0.1) +
-  scale_color_discrete(labels = c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Sydhavn","Valby","Vanløse")) +
+  scale_color_discrete(labels = c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Vesterbro","Valby","Vanløse")) +
   scale_y_continuous(labels = comma) +
   theme(legend.position = "bottom",
         legend.title=element_blank(),
