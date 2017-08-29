@@ -806,13 +806,17 @@ data_test$resid_avg = 1/5 *(data_test$resid_knn + data_test$resid_linear + data_
 ggsave("resid_geo.png")
   
 
-data_res = gather(data_test, key = model, value = resid, c(pred_linear,pred_knn,pred_nnet,pred_rf))
+data_res = gather(data_test, key = model, value = pred, c(pred_linear,pred_knn,pred_nnet,pred_rf))
+
+data_res$model <- as.factor(data_res$model)
+levels(data_res$model) <- c("Linear", "KNN","Neural Net", "Random Forest", "XgbTree")
+
 
 
       ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     #    geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
     #                 color = "grey50", alpha = 0.1, show.legend = FALSE) +
-        geom_point(data = data_res, aes( x = lon, y = lat, color = /buysum ), size = 0.5, alpha = 0.6) +
+        geom_point(data = data_res, aes( x = lon, y = lat, color = pred - buysum), size = 0.3, alpha = 0.6) +
         coord_map(projection="mercator", 
                   xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
                   ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
