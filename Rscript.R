@@ -13,7 +13,6 @@ library("plyr")
 library("scales")
 
 
-
 #######################################################################################################################
 #######################################################################################################################
 ###
@@ -533,6 +532,7 @@ dummies = function(data){
 }
 
 
+
 ###---------------------------------------------
 ###        6.2) train control
 ###---------------------------------------------
@@ -651,11 +651,11 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 #***********  6.7.1) graphical comparison *************************
 #actual v. fitted
 ggplot(data = data_test) +
-    geom_point(aes(x = buysum, y = pred_linear, color = "red"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = pred_knn, color = "blue"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = pred_rf, color = "green"),alpha = 0.4) +
-    geom_point(aes(x = buysum, y = pred_nnet, color = "yellow"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = pred_xgbTree, color = "purple"), alpha = 0.4) +
+    geom_point(aes(x = buysum, y = pred_linear, color = "red"), alpha = 0.2, size = 0.5) +
+    geom_point(aes(x = buysum, y = pred_knn, color = "blue"), alpha = 0.2, size = 0.5) +
+    geom_point(aes(x = buysum, y = pred_rf, color = "green"),alpha = 0.2, size = 0.5) +
+    geom_point(aes(x = buysum, y = pred_nnet, color = "yellow"), alpha = 0.2, size = 0.5) +
+    geom_point(aes(x = buysum, y = pred_xgbTree, color = "purple"), alpha = 0.2, size = 0.5) +
     coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
     geom_abline(slope = 1, intercept = 0) +
     scale_colour_manual(name = "", 
@@ -665,6 +665,7 @@ ggplot(data = data_test) +
     ylab("prediction") +
     facet_wrap(~ nborhood)
   
+ggsave("residuals.png")
 
 # actual v. residuals     
 ggplot(data = data_test) +
@@ -714,7 +715,7 @@ data_highresid = gather(data_test, key = model, value = resid, c(resid_linear,re
 #***********  6.7.2) Analytical comparison *************************
 
 #RMSE and R2 for each model
-resamp = resamples(list(knn = m_knn, rf = m_rf, lin = m_linear, linPCA = m_linearPCA, nnet = m_nnet, xgbTree = m_xgbTree, xgbLin = m_xgbLin ))
+resamp = resamples(list(knn = m_knn, rf = m_rf, lin = m_linear, linPCA = m_linearPCA, nnet = m_nnet, xgbTree = m_xgbTree ))
 # RMSE
   dotplot(resamp,metric = "RMSE")
 # R2
