@@ -651,29 +651,36 @@ fitControl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
 #***********  6.7.1) graphical comparison *************************
 #actual v. fitted
 ggplot(data = data_test) +
-    geom_point(aes(x = buysum, y = pred_linear, color = "red"), alpha = 0.2, size = 0.5) +
-    geom_point(aes(x = buysum, y = pred_knn, color = "blue"), alpha = 0.2, size = 0.5) +
-    geom_point(aes(x = buysum, y = pred_rf, color = "green"),alpha = 0.2, size = 0.5) +
-    geom_point(aes(x = buysum, y = pred_nnet, color = "yellow"), alpha = 0.2, size = 0.5) +
-    geom_point(aes(x = buysum, y = pred_xgbTree, color = "purple"), alpha = 0.2, size = 0.5) +
-    coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
+    geom_point(aes(x = buysum/1000000, y = pred_linear/1000000, color = "red"), alpha = 0.1, size = 0.3) +
+    geom_point(aes(x = buysum/1000000, y = pred_knn/1000000, color = "blue"), alpha = 0.1, size = 0.3) +
+    geom_point(aes(x = buysum/1000000, y = pred_rf/1000000, color = "green"),alpha = 0.1, size = 0.3) +
+    geom_point(aes(x = buysum/1000000, y = pred_nnet/1000000, color = "yellow"), alpha = 0.1, size = 0.3) +
+    geom_point(aes(x = buysum/1000000, y = pred_xgbTree/1000000, color = "purple"), alpha = 0.1, size = 0.3) +
+    coord_fixed(ratio=1, xlim = c(0,5), ylim = c(0,5)) +
     geom_abline(slope = 1, intercept = 0) +
     scale_colour_manual(name = "", 
                         values =c("red"="red","blue"="blue", "green" = "green", "yellow" = "yellow", "purple"= "purple"),
                         labels = c("red" = "linear","blue" = "k-NN","green" = "Random Forest","yellow" = "Bayesian nnet","purple" = "xgb"), guide = "legend") +
-    theme(legend.position="bottom") +
-    ylab("prediction") +
+    ylab("predicted (mil.)") +
+    xlab("actual (mil.)") +
+    scale_x_continuous(labels = comma) +
+    scale_y_continuous(labels = comma) +
+    theme(legend.position = "bottom",
+          legend.title=element_blank(),
+          legend.text = element_text(size = 7),
+          legend.background = element_rect(fill=NA)) +
+    guides(color = guide_legend(override.aes = list(size=2, alpha = 1))) +
     facet_wrap(~ nborhood)
   
-ggsave("residuals.png")
+ggsave("fitted.png")
 
 # actual v. residuals     
 ggplot(data = data_test) +
-    geom_point(aes(x = buysum, y = resid_linear, color = "red"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = resid_knn, color = "blue"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = resid_rf, color = "green"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = resid_nnet, color = "yellow"), alpha = 0.4) +
-    geom_point(aes(x = buysum, y = resid_xgbTree, color = "purple"), alpha = 0.4) +
+    geom_point(aes(x = buysum/1000000, y = resid_linear/1000000, color = "red"), size = 0.3, alpha = 0.1) +
+    geom_point(aes(x = buysum/1000000, y = resid_knn/1000000, color = "blue"),size = 0.3, alpha = 0.1) +
+    geom_point(aes(x = buysum/1000000, y = resid_rf/1000000, color = "green"),size = 0.3, alpha = 0.1) +
+    geom_point(aes(x = buysum/1000000, y = resid_nnet/1000000, color = "yellow"),size = 0.3, alpha = 0.1) +
+    geom_point(aes(x = buysum/1000000, y = resid_xgbTree/1000000, color = "purple"),size = 0.3, alpha = 0.1) +
 #    coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
@@ -683,10 +690,62 @@ ggplot(data = data_test) +
 #    scale_colour_manual(name = "", 
 #                      values =c("red"="red","blue"="blue", "green" = "green", "yellow" = "yellow"),
 #                      labels = c("linear", "k-NN", "Random Forest", "Bayesian nnet"), guide = "legend") +
-    theme(legend.position="bottom") +
-    ylab("residual") +
+    ylab("residual (mil.)") +
+    xlab("actual (mil.)") +
+    scale_x_continuous(labels = comma) +
+    scale_y_continuous(labels = comma) +
+    theme(legend.position = "bottom",
+          legend.title=element_blank(),
+          legend.text = element_text(size = 7),
+          legend.background = element_rect(fill=NA)) +
+    guides(color = guide_legend(override.aes = list(size=2, alpha = 1))) +
+
     facet_wrap(~ nborhood) 
- 
+
+ggsave("residuals.png") 
+
+
+
+
+ggplot(data = data_test) +
+    geom_density2d(aes(x = buysum/1000000, y = resid_linear/1000000, color = "red"), size = 0.3, alpha = 0.4) +
+    geom_density2d(aes(x = buysum/1000000, y = resid_knn/1000000, color = "blue"),size = 0.3, alpha = 0.4) +
+    geom_density2d(aes(x = buysum/1000000, y = resid_rf/1000000, color = "green"),size = 0.3, alpha = 0.4) +
+    geom_density2d(aes(x = buysum/1000000, y = resid_nnet/1000000, color = "yellow"),size = 0.3, alpha = 0.4) +
+    geom_density2d(aes(x = buysum/1000000, y = resid_xgbTree/1000000, color = "purple"),size = 0.3, alpha = 0.4) +
+#    coord_fixed(ratio=1, xlim = c(0,5000000), ylim = c(0,5000000)) +
+    geom_hline(yintercept = 0) +
+    geom_vline(xintercept = 0) +
+    scale_colour_manual(name = "", 
+                      values =c("red"="red","blue"="blue", "green" = "green", "yellow" = "yellow", "purple"= "purple"),
+                      labels = c("red" = "linear","blue" = "k-NN","green" = "Random Forest","yellow" = "Bayesian nnet","purple" = "xgb"), guide = "legend") +
+#    scale_colour_manual(name = "", 
+#                      values =c("red"="red","blue"="blue", "green" = "green", "yellow" = "yellow"),
+#                      labels = c("linear", "k-NN", "Random Forest", "Bayesian nnet"), guide = "legend") +
+    ylab("residual (mil.)") +
+    xlab("actual (mil.)") +
+    scale_x_continuous(labels = comma) +
+    scale_y_continuous(labels = comma) +
+    theme(legend.position = "bottom",
+          legend.title=element_blank(),
+          legend.text = element_text(size = 7),
+          legend.background = element_rect(fill=NA)) +
+    guides(color = guide_legend(override.aes = list(size=3, alpha = 1))) +
+
+    facet_wrap(~ nborhood) 
+
+ggsave("residuals_density.png") 
+
+
+
+
+
+
+
+
+
+# EXPERIMENTS BELOW
+
 # top n% of the residuals, plotted on a map, colored by model
   n = 1
 data_highresid = gather(data_test, key = model, value = resid, c(resid_linear,resid_knn,resid_nnet,resid_rf)) %>%
@@ -711,7 +770,75 @@ data_highresid = gather(data_test, key = model, value = resid, c(resid_linear,re
               guides(size=FALSE) +
               scale_size_continuous(range = c(1, 3))
 
+      
+      
+      
+      
+data_test$resid_avg = 1/5 *(data_test$resid_knn + data_test$resid_linear + data_test$resid_nnet + data_test$resid_rf + data_test$resid_xgbTree) 
+
+      ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
+    #    geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
+    #                 color = "grey50", alpha = 0.1, show.legend = FALSE) +
+        geom_point(data = data_test, aes( x = lon, y = lat, color = log(abs(resid_avg))), size = 0.5, alpha = 0.6) +
+        coord_map(projection="mercator", 
+                  xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
+                  ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
+        scale_color_gradient(high = "orange", low = "blue") +
+#        scale_color_gradient2(high = "blue", mid = "orange", low = "blue") +
+    guides(color = guide_colorbar(barwidth = 20,
+                                  barheight = 0.3,
+                                  title = "Log of absolute average model residuals",
+                                  title.position = "top")
+           ) +
+    theme(legend.position = "bottom",
+          axis.line=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          plot.background=element_blank()) 
+      
+ggsave("resid_geo.png")
   
+
+data_res = gather(data_test, key = model, value = resid, c(pred_linear,pred_knn,pred_nnet,pred_rf))
+
+
+      ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
+    #    geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
+    #                 color = "grey50", alpha = 0.1, show.legend = FALSE) +
+        geom_point(data = data_res, aes( x = lon, y = lat, color = /buysum ), size = 0.5, alpha = 0.6) +
+        coord_map(projection="mercator", 
+                  xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
+                  ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
+        scale_color_gradient(high = "orange", low = "blue") +
+#        scale_color_gradient2(high = "blue", mid = "orange", low = "blue") +
+    guides(color = guide_colorbar(barwidth = 20,
+                                  barheight = 0.3,
+                                  title = "Log of absolute average model residuals",
+                                  title.position = "top")
+           ) +
+    theme(legend.position = "bottom",
+          axis.line=element_blank(),
+          axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          plot.background=element_blank()) +
+    facet_wrap(~ model)
+
+      
+ggsave('facet_map.png')
 #***********  6.7.2) Analytical comparison *************************
 
 #RMSE and R2 for each model

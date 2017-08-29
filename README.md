@@ -15,6 +15,20 @@ The oldest data are from around 1992, and will (sort of) be downloaded with the 
 <img src="facet_over_time.png" alt="GDP plot" width = "60%">
 </p>
 
+We can try different models on the data, to ee if we can predict the housing prices. First actual vs. fitted values
+
+
+<p align="center">
+<img src="fitted.png" alt="GDP plot" width = "60%">
+</p>
+
+And residuals in a similar way
+
+
+<p align="center">
+<img src="residuals.png" alt="GDP plot" width = "60%">
+</p>
+
 
 
 ## Usage
