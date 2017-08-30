@@ -21,6 +21,13 @@ To dig slightly deeper into the data, let's plot price and size of the apartment
 <img src="area_overview.png" alt="GDP plot" width = "60%">
 </p>
 
+And in a similar way let's try and uncover how the city has evolved
+
+<p align="center">
+<img src="area_overview_2.png" alt="GDP plot" width = "60%">
+</p>
+
+
 We can try different models on the data, to see if we can predict the housing prices. First actual vs. fitted values
 
 
