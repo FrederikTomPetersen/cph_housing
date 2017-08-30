@@ -99,16 +99,48 @@ source("functions.R")
 ###
 #######################################################################################################################
 
+data_fin$nborhood <- as.factor(data_fin$nborhood)
+levels(data_fin$nborhood) <- c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Vesterbro","Valby","Vanløse")
+
+    
 #facet wrap of densities in each quarter
-density <-  ggplot(data = data_fin[data_fin$n_rooms %in% c(2,4,6,8) & buysum <,]) +
+density <-  ggplot(data = data_fin[data_fin$n_rooms %in% c(2,4,6,8) & buysum < 5000000,]) +
     geom_density(aes(x = buysum, group = nborhood, fill = nborhood),  size = 0.5, alpha = 0.3) +
     scale_fill_viridis(discrete = T) +
     facet_wrap(~ n_rooms)
-
-
     
 density
 
+
+ggplot(data = data_fin[data_fin$buysum < 10000000 & data_fin$m2 < 200,]) +
+    geom_jitter(aes(x = nborhood, color = m2, y = buysum/1000000), alpha = 0.1) + 
+    scale_color_viridis(option = "magma", labels = comma) +
+    xlab("Neighboorhood") +
+    ylab("Price") +
+    guides(color = guide_colorbar(barwidth = 20,
+                                  barheight = 0.3,
+                                  title = expression(m^2),
+                                  title.position = "top")) +  
+    theme(legend.position="bottom",
+          axis.text.x = element_text(size = 6),
+  #        axis.text.y = element_text(size = 6),
+          panel.background=element_blank(),
+          panel.border=element_blank(),
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          axis.text.y = element_blank()
+            ) 
+
+ggsave("area_overview.png")
+
+ggplot(data = data_fin[data_fin$buysum < 10000000 & data_fin$m2 < 200,]) +
+  geom_point(aes(x = build_year, y = m2, color = husnr))
+
+
+
+ggplot(data = data_fin[data_fin$buysum < 5000000,]) +
+  geom_point(aes(y = buysum, x =m2, color =  sqm_price), alpha = 0.2) +
+  scale_color_viridis(option = "magma",discrete = F)
 
 # map plot of log(buysum)
 map_cph <- get_map(location = "copenhagen", zoom = 12, maptype = 'satellite')
@@ -143,14 +175,10 @@ map1
 
 
 
-data_fin2$nborhood <- as.factor(data_fin2$nborhood)
-levels(data_fin2$nborhood) <- c("Amager Ø", "Amager V", "Brønshøj", "Indre by", "Nørrebro","Nordvest","Østerbro","Vesterbro","Valby","Vanløse")
-
 # buysum by date
-times <- ggplot(data = data_fin2[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(n_rooms))) +
+times <- ggplot(data = data_fin[data_fin$buysum < 5000000,],aes(x = date, y = buysum, color = log(n_rooms))) +
   geom_line(alpha = 0.15) +
   geom_smooth(color = "purple", alpha = 0.8) +
-  scale_y_continuous(labels = comma) +
   guides(color = guide_colorbar(barwidth = 20,
                                 barheight = 0.3,
                                 title = "Log of number of rooms",
@@ -529,17 +557,20 @@ ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "nor
 ggsave("resid_geo.png")
   
 
-data_res = gather(data_test, key = model, value = pred, c(pred_linear,pred_knn,pred_nnet,pred_rf))
+
+
+
+data_res = gather(data_test, key = model, value = pred, c(pred_linear,pred_knn,pred_nnet,pred_rf, pred_avg))
 
 data_res$model <- as.factor(data_res$model)
-levels(data_res$model) <- c("Linear", "KNN","Neural Net", "Random Forest", "XgbTree")
+levels(data_res$model) <- c("Linear", "KNN","Neural Net", "Random Forest", "XgbTree", "average")
 
 
 
-      ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
+ggmap(map_cph, base_layer=ggplot(aes(x=lon,y=lat), data=data_geo), extent = "normal", maprange=FALSE) +
     #    geom_polygon(data = bydel, aes(x = long, y = lat, group = group),
     #                 color = "grey50", alpha = 0.1, show.legend = FALSE) +
-        geom_point(data = data_res, aes( x = lon, y = lat, color = pred - buysum), size = 0.3, alpha = 0.6) +
+        geom_point(data = data_res, aes( x = lon, y = lat, color = log(log(pred - buysum))), size = 0.3, alpha = 0.6) +
         coord_map(projection="mercator", 
                   xlim=c(attr(map_cph, "bb")$ll.lon, attr(map_cph, "bb")$ur.lon),
                   ylim=c(attr(map_cph, "bb")$ll.lat, attr(map_cph, "bb")$ur.lat)) +
