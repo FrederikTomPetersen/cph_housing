@@ -2,7 +2,7 @@
 
 ## Scraping and analysing the housing market of Copenhagen
 
-The `Rscript.R` file contains everything as of now, but that might change in the future. I scrape the danish online housing marketplace [boliga](boliga.dk) for hitorical trade price data.
+The `Rscript.R` file contains everything as of now, but that might change in the future. I scrape the danish online housing marketplace [boliga](boliga.dk) for hitorical trade price data. Please note that in the below figures data are truncated as I see fit - mainly because outliers would otherwise affect the color scales.
 
 The data covers the whole municipality of Copenhagen, but excludes Frederiksberg:
 <p align="center">
