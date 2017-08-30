@@ -15,7 +15,13 @@ The oldest data are from around 1992, and will (sort of) be downloaded with the 
 <img src="facet_over_time.png" alt="GDP plot" width = "60%">
 </p>
 
-We can try different models on the data, to ee if we can predict the housing prices. First actual vs. fitted values
+To dig slightly deeper into the data, let's plot price and size of the apartments by neighborhood in a neat way
+
+<p align="center">
+<img src="area_overview.png" alt="GDP plot" width = "60%">
+</p>
+
+We can try different models on the data, to see if we can predict the housing prices. First actual vs. fitted values
 
 
 <p align="center">
