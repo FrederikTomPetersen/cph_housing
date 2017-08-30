@@ -115,7 +115,7 @@ density
 ggplot(data = data_fin[data_fin$buysum < 10000000 & data_fin$m2 < 200,]) +
     geom_jitter(aes(x = nborhood, color = m2, y = buysum/1000000), alpha = 0.1) + 
     scale_color_viridis(option = "magma", labels = comma) +
-    xlab("Neighboorhood") +
+    xlab("") +
     ylab("Price") +
     guides(color = guide_colorbar(barwidth = 20,
                                   barheight = 0.3,
@@ -123,20 +123,35 @@ ggplot(data = data_fin[data_fin$buysum < 10000000 & data_fin$m2 < 200,]) +
                                   title.position = "top")) +  
     theme(legend.position="bottom",
           axis.text.x = element_text(size = 6),
-  #        axis.text.y = element_text(size = 6),
           panel.background=element_blank(),
           panel.border=element_blank(),
           panel.grid.major=element_blank(),
           panel.grid.minor=element_blank(),
           axis.text.y = element_blank()
-            ) 
+          ) 
 
 ggsave("area_overview.png")
 
-ggplot(data = data_fin[data_fin$buysum < 10000000 & data_fin$m2 < 200,]) +
-  geom_point(aes(x = build_year, y = m2, color = husnr))
+ggplot(data = data_fin[data_fin$sqm_price < 50000 & data_fin$m2 < 200,]) +
+  geom_jitter(aes(x = nborhood, y = build_year, color = sqm_price), alpha = 0.1) + 
+ # scale_color_distiller(palette = "Greens") +
+ scale_color_viridis(option = "magma", labels = comma) +
+  xlab("") +
+  ylab("Build year") +
+  guides(color = guide_colorbar(barwidth = 20,
+                                barheight = 0.3,
+                                title = "Square meter price",
+                                title.position = "top")) +  
+  theme(legend.position="top",
+        axis.text.x = element_text(size = 6),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        axis.text.y = element_blank()
+        ) 
 
-
+ggsave('area_overview_2.png')
 
 ggplot(data = data_fin[data_fin$buysum < 5000000,]) +
   geom_point(aes(y = buysum, x =m2, color =  sqm_price), alpha = 0.2) +
