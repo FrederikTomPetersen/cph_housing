@@ -29,7 +29,11 @@ And residuals in a similar way
 <img src="residuals.png" alt="GDP plot" width = "60%">
 </p>
 
+Taking a raw average of the residuals from each of our models, and coloring the average values red shows how this might enhance precision and we can understand why this might help reduce variance.
 
+<p align="center">
+<img src="residuals_avg.png" alt="GDP plot" width = "60%">
+</p>
 
 ## Usage
 This project relies on a number of very large data files, including a national adress registry and a city shapefile - to get access to these you can contact me directly, as storing them on github would take upto much space.
